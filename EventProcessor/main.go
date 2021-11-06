@@ -25,13 +25,14 @@ func Handle(ctx context.Context, sqsEvent events.SQSEvent) error {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		log.WithField("api-error", "error-occurred").
+		log.WithField("api-event", "api-error").
 			Error("api returned error: ", resp.StatusCode)
 
 		return fmt.Errorf("api error, %d", resp.StatusCode)
 	}
 
-	log.Infof("Successful API request %d", resp.StatusCode)
+	log.WithField("api-event", "success").
+		Infof("Successful API request %d", resp.StatusCode)
 
 	// Do something with the returned request
 
