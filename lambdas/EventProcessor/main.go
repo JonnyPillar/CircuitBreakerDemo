@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -17,7 +18,9 @@ func main() {
 func Handle(ctx context.Context, sqsEvent events.SQSEvent) error {
 	log := logrus.New()
 
-	resp, err := http.Get("http://localhost:8090/api/poll")
+	url := os.Getenv("API_URL")
+
+	resp, err := http.Get(url)
 	if err != nil {
 		log.Error("error making request", err)
 
