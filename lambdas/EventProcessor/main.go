@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"os"
 
@@ -17,6 +16,7 @@ func main() {
 
 func Handle(ctx context.Context, sqsEvent events.SQSEvent) error {
 	log := logrus.New()
+	log.SetFormatter(&logrus.JSONFormatter{})
 
 	url := os.Getenv("API_URL")
 
@@ -27,17 +27,15 @@ func Handle(ctx context.Context, sqsEvent events.SQSEvent) error {
 		return err
 	}
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusTooManyRequests {
 		log.WithField("api-event", "api-error").
 			Error("api returned error: ", resp.StatusCode)
 
-		return fmt.Errorf("api error, %d", resp.StatusCode)
+		return nil
 	}
 
 	log.WithField("api-event", "success").
 		Infof("Successful API request %d", resp.StatusCode)
-
-	// Do something with the returned request
 
 	return nil
 }

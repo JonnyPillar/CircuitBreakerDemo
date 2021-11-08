@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -23,40 +24,41 @@ func Handle(ctx context.Context) error {
 	queueURL := os.Getenv("SQS_QUEUE_URL")
 	data := "{}"
 
-	var entries []types.SendMessageBatchRequestEntry
+	for range time.Tick(time.Second * 1) {
+		var entries []types.SendMessageBatchRequestEntry
 
-	for i := 0; i < 500; i++ {
-		batchEntry := types.SendMessageBatchRequestEntry{
-			Id:          aws.String(fmt.Sprintf("%d", i)),
-			MessageBody: aws.String(data),
+		for i := 0; i < 10; i++ {
+			batchEntry := types.SendMessageBatchRequestEntry{
+				Id:          aws.String(fmt.Sprintf("%d", i)),
+				MessageBody: aws.String(data),
+			}
+
+			entries = append(entries, batchEntry)
 		}
 
-		entries = append(entries, batchEntry)
+		cfg, err := config.LoadDefaultConfig(context.Background())
+		if err != nil {
+			log.Error("Error loading config", err)
+
+			return err
+		}
+
+		sMInput := &sqs.SendMessageBatchInput{
+			Entries:  entries,
+			QueueUrl: aws.String(queueURL),
+		}
+
+		api := sqs.NewFromConfig(cfg)
+
+		_, err = api.SendMessageBatch(ctx, sMInput)
+		if err != nil {
+			log.Error("Error sending events", err)
+
+			return err
+		}
+
+		log.Info("Sent events")
 	}
-
-	cfg, err := config.LoadDefaultConfig(context.Background())
-	if err != nil {
-		log.Error("Error loading config", err)
-
-		return err
-		// return nil, fmt.Errorf("configuration error: %w", err)
-	}
-
-	sMInput := &sqs.SendMessageBatchInput{
-		Entries:  entries,
-		QueueUrl: aws.String(queueURL),
-	}
-
-	api := sqs.NewFromConfig(cfg)
-
-	_, err = api.SendMessageBatch(ctx, sMInput)
-	if err != nil {
-		log.Error("Error sending events", err)
-
-		return err
-	}
-
-	log.Info("Sent events")
 
 	return nil
 }

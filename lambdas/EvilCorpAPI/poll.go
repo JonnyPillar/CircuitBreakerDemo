@@ -1,42 +1,31 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
 	"net/http"
+	"os"
+
+	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
-var (
-	toggle bool = false
-)
+func pollHandler(c *gin.Context) {
+	log := logrus.New()
+	log.SetFormatter(&logrus.JSONFormatter{})
 
-type Response struct {
-	Success bool   `json:"success"`
-	Message string `json:"message,omitempty"`
-}
+	toggle := os.Getenv("TOGGLE") == "true"
 
-func pollHandler(w http.ResponseWriter, req *http.Request) {
-	var resp Response
+	log.WithField("api-event", "api-request").Info("Received request")
+
 	switch toggle {
 	case true:
-		w.WriteHeader(http.StatusOK)
-		resp = Response{
-			Success: true,
-			Message: "Continue being evil",
-		}
+		c.JSON(200, gin.H{
+			"success": true,
+			"message": "Continue being evil",
+		})
 	default:
-		w.WriteHeader(http.StatusInternalServerError)
-		resp = Response{
-			Success: false,
-			Message: "Something went wrong being evil",
-		}
+		c.JSON(http.StatusTooManyRequests, gin.H{
+			"success": false,
+			"message": "Too many people being evil",
+		})
 	}
-
-	r, _ := json.Marshal(resp)
-
-	fmt.Fprintf(w, "%s\n", r)
-}
-
-func toggleHandler(w http.ResponseWriter, req *http.Request) {
-	toggle = !toggle
 }
